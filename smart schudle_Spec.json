@@ -1,0 +1,901 @@
+{
+  "pages": [
+    {
+      "name": "Dashboard",
+      "description": "Overview page showing key scheduling metrics, employee hour summaries, and shift status at a glance.",
+      "key_components": [
+        "Employee hour summary cards",
+        "Shift capacity overview",
+        "Color-coded status indicators (green/yellow/red for hours and shift capacity)",
+        "Quick navigation to other pages"
+      ],
+      "requires_auth": true
+    },
+    {
+      "name": "Weekly Schedule",
+      "description": "Spreadsheet-like weekly grid where shifts are displayed as cells containing assigned employees, worker counts, and remaining capacity.",
+      "key_components": [
+        "Weekly table grid (days as rows, shift types as columns)",
+        "Shift cells showing employee names, worker count, and remaining capacity",
+        "Assign employee to shift control",
+        "Remove employee from shift control",
+        "Color-coded shift availability (green=available, yellow=nearly full, red=full)",
+        "Week selector/navigator"
+      ],
+      "requires_auth": true
+    },
+    {
+      "name": "Employee Management",
+      "description": "Page for managers to create, edit, and view employees, their employment types, and hour limits.",
+      "key_components": [
+        "Employee list/table",
+        "Add employee form (name, employment type)",
+        "Edit employee details",
+        "Employee type configuration (name, max weekly hours)",
+        "Live hour tracking per employee (max hours, scheduled hours, remaining hours)",
+        "Employee availability configuration"
+      ],
+      "requires_auth": true
+    },
+    {
+      "name": "Settings",
+      "description": "Configuration page for managing predefined shifts, shift capacity rules, employee types, and system-wide settings.",
+      "key_components": [
+        "Predefined shift management (day, start time, end time, min/max workers)",
+        "Employee type management (name, max weekly hours)",
+        "Shift capacity rules configuration"
+      ],
+      "requires_auth": true
+    }
+  ],
+  "entities": [
+    {
+      "name": "Employee",
+      "description": "A worker at the recreation center who can be assigned to shifts.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "derived": false
+        },
+        {
+          "name": "employee_type_id",
+          "type": "foreign_key(EmployeeType)",
+          "derived": false
+        },
+        {
+          "name": "weekly_hours_scheduled",
+          "type": "number",
+          "derived": true
+        },
+        {
+          "name": "remaining_hours",
+          "type": "number",
+          "derived": true
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "EmployeeType",
+          "type": "many-to-one"
+        },
+        {
+          "entity": "ScheduleAssignment",
+          "type": "one-to-many"
+        },
+        {
+          "entity": "EmployeeAvailability",
+          "type": "one-to-many"
+        }
+      ]
+    },
+    {
+      "name": "EmployeeType",
+      "description": "Classification of employee determining their maximum weekly hours (e.g., Permanent, Part-Time, Federal Work Study).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "derived": false
+        },
+        {
+          "name": "max_weekly_hours",
+          "type": "number",
+          "derived": false
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "Employee",
+          "type": "one-to-many"
+        }
+      ]
+    },
+    {
+      "name": "Shift",
+      "description": "A predefined time slot on a specific day of the week with capacity limits.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "day_of_week",
+          "type": "string",
+          "derived": false
+        },
+        {
+          "name": "start_time",
+          "type": "time",
+          "derived": false
+        },
+        {
+          "name": "end_time",
+          "type": "time",
+          "derived": false
+        },
+        {
+          "name": "duration_hours",
+          "type": "number",
+          "derived": true
+        },
+        {
+          "name": "min_workers",
+          "type": "integer",
+          "derived": false
+        },
+        {
+          "name": "max_workers",
+          "type": "integer",
+          "derived": false
+        },
+        {
+          "name": "assigned_worker_count",
+          "type": "integer",
+          "derived": true
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "ScheduleAssignment",
+          "type": "one-to-many"
+        }
+      ]
+    },
+    {
+      "name": "ScheduleAssignment",
+      "description": "A record linking an employee to a specific shift, representing that the employee is scheduled to work that shift.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "shift_id",
+          "type": "foreign_key(Shift)",
+          "derived": false
+        },
+        {
+          "name": "employee_id",
+          "type": "foreign_key(Employee)",
+          "derived": false
+        },
+        {
+          "name": "week_identifier",
+          "type": "date",
+          "derived": false
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "Shift",
+          "type": "many-to-one"
+        },
+        {
+          "entity": "Employee",
+          "type": "many-to-one"
+        }
+      ]
+    },
+    {
+      "name": "EmployeeAvailability",
+      "description": "Defines which shifts an employee is available to work (optional but recommended feature).",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "employee_id",
+          "type": "foreign_key(Employee)",
+          "derived": false
+        },
+        {
+          "name": "day_of_week",
+          "type": "string",
+          "derived": false
+        },
+        {
+          "name": "shift_id",
+          "type": "foreign_key(Shift)",
+          "derived": false
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "Employee",
+          "type": "many-to-one"
+        },
+        {
+          "entity": "Shift",
+          "type": "many-to-one"
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "description": "An authenticated user of the system with a role of either Employee or Manager.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "derived": false
+        },
+        {
+          "name": "role",
+          "type": "enum(Employee, Manager)",
+          "derived": false
+        },
+        {
+          "name": "employee_id",
+          "type": "foreign_key(Employee)",
+          "derived": false
+        }
+      ],
+      "relationships": [
+        {
+          "entity": "Employee",
+          "type": "one-to-one"
+        }
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "name": "create_employee",
+      "description": "Manager creates a new employee with a name and employment type.",
+      "actor": "Manager",
+      "inputs": [
+        "name",
+        "employee_type_id"
+      ],
+      "effects": [
+        "New employee record is created in the system"
+      ],
+      "affected_entities": [
+        "Employee"
+      ],
+      "affected_metrics": []
+    },
+    {
+      "name": "edit_employee",
+      "description": "Manager edits an existing employee's details such as name or employment type.",
+      "actor": "Manager",
+      "inputs": [
+        "employee_id",
+        "name",
+        "employee_type_id"
+      ],
+      "effects": [
+        "Employee record is updated",
+        "Weekly hour limits may change if type changes"
+      ],
+      "affected_entities": [
+        "Employee"
+      ],
+      "affected_metrics": [
+        "employee_weekly_hours",
+        "employee_remaining_hours"
+      ]
+    },
+    {
+      "name": "configure_employee_type",
+      "description": "Manager creates or updates an employee type with name and max weekly hours.",
+      "actor": "Manager",
+      "inputs": [
+        "name",
+        "max_weekly_hours"
+      ],
+      "effects": [
+        "Employee type is created or updated",
+        "All employees of this type have their limits updated"
+      ],
+      "affected_entities": [
+        "EmployeeType"
+      ],
+      "affected_metrics": [
+        "employee_remaining_hours"
+      ]
+    },
+    {
+      "name": "define_shift",
+      "description": "Manager creates or edits a predefined shift with day, times, and capacity limits.",
+      "actor": "Manager",
+      "inputs": [
+        "day_of_week",
+        "start_time",
+        "end_time",
+        "min_workers",
+        "max_workers"
+      ],
+      "effects": [
+        "Shift is created or updated",
+        "Duration is automatically calculated"
+      ],
+      "affected_entities": [
+        "Shift"
+      ],
+      "affected_metrics": [
+        "shift_duration",
+        "shift_capacity_status"
+      ]
+    },
+    {
+      "name": "assign_employee_to_shift",
+      "description": "Assign an employee to a specific shift for a given week. System validates hour limits and shift capacity before allowing assignment.",
+      "actor": "Manager",
+      "inputs": [
+        "employee_id",
+        "shift_id",
+        "week_identifier"
+      ],
+      "effects": [
+        "Schedule assignment record is created",
+        "Employee weekly scheduled hours increase by shift duration",
+        "Shift assigned worker count increases by 1"
+      ],
+      "affected_entities": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "affected_metrics": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_capacity_status",
+        "shift_worker_count"
+      ]
+    },
+    {
+      "name": "remove_employee_from_shift",
+      "description": "Remove an employee from a shift assignment. System automatically subtracts hours from employee total.",
+      "actor": "Manager",
+      "inputs": [
+        "schedule_assignment_id"
+      ],
+      "effects": [
+        "Schedule assignment record is deleted",
+        "Employee weekly scheduled hours decrease by shift duration",
+        "Shift assigned worker count decreases by 1"
+      ],
+      "affected_entities": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "affected_metrics": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_capacity_status",
+        "shift_worker_count"
+      ]
+    },
+    {
+      "name": "select_available_shift",
+      "description": "Employee selects an available shift for themselves, subject to the same validation rules.",
+      "actor": "Employee",
+      "inputs": [
+        "shift_id",
+        "week_identifier"
+      ],
+      "effects": [
+        "Schedule assignment record is created for the logged-in employee",
+        "Employee weekly scheduled hours increase by shift duration",
+        "Shift assigned worker count increases by 1"
+      ],
+      "affected_entities": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "affected_metrics": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_capacity_status",
+        "shift_worker_count"
+      ]
+    },
+    {
+      "name": "set_employee_availability",
+      "description": "Employee or manager defines which shifts an employee is available to work.",
+      "actor": "Manager",
+      "inputs": [
+        "employee_id",
+        "day_of_week",
+        "shift_id"
+      ],
+      "effects": [
+        "Availability record is created or updated",
+        "Unavailable shifts become disabled for the employee"
+      ],
+      "affected_entities": [
+        "EmployeeAvailability"
+      ],
+      "affected_metrics": []
+    },
+    {
+      "name": "view_schedule",
+      "description": "Any authenticated user views the weekly shift schedule.",
+      "actor": "Employee",
+      "inputs": [
+        "week_identifier"
+      ],
+      "effects": [
+        "Schedule data is retrieved and displayed"
+      ],
+      "affected_entities": [
+        "ScheduleAssignment",
+        "Shift",
+        "Employee"
+      ],
+      "affected_metrics": []
+    },
+    {
+      "name": "view_personal_hours",
+      "description": "Employee views their own scheduled hours, max hours, and remaining hours.",
+      "actor": "Employee",
+      "inputs": [
+        "employee_id",
+        "week_identifier"
+      ],
+      "effects": [
+        "Personal hour summary is displayed"
+      ],
+      "affected_entities": [
+        "Employee",
+        "ScheduleAssignment"
+      ],
+      "affected_metrics": [
+        "employee_weekly_hours",
+        "employee_remaining_hours"
+      ]
+    }
+  ],
+  "computed_metrics": [
+    {
+      "name": "shift_duration",
+      "description": "Automatically calculated duration of a shift: end_time minus start_time in hours.",
+      "depends_on": [
+        "Shift.start_time",
+        "Shift.end_time"
+      ],
+      "shown_on_pages": [
+        "Weekly Schedule",
+        "Settings"
+      ]
+    },
+    {
+      "name": "employee_weekly_hours",
+      "description": "Sum of duration_hours of all shifts assigned to an employee in a given week.",
+      "depends_on": [
+        "ScheduleAssignment",
+        "Shift.duration_hours"
+      ],
+      "shown_on_pages": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ]
+    },
+    {
+      "name": "employee_remaining_hours",
+      "description": "Employee's max weekly hours minus their currently scheduled weekly hours.",
+      "depends_on": [
+        "EmployeeType.max_weekly_hours",
+        "employee_weekly_hours"
+      ],
+      "shown_on_pages": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ]
+    },
+    {
+      "name": "shift_worker_count",
+      "description": "Count of employees currently assigned to a specific shift in a given week.",
+      "depends_on": [
+        "ScheduleAssignment"
+      ],
+      "shown_on_pages": [
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "shift_capacity_status",
+      "description": "Visual status of a shift: green (available), yellow (nearly full), red (full), based on assigned workers vs max workers.",
+      "depends_on": [
+        "shift_worker_count",
+        "Shift.max_workers"
+      ],
+      "shown_on_pages": [
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "employee_hours_status",
+      "description": "Visual indicator for employee hours: green (under limit), yellow (close to limit), red (at or over limit).",
+      "depends_on": [
+        "employee_weekly_hours",
+        "EmployeeType.max_weekly_hours"
+      ],
+      "shown_on_pages": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ]
+    },
+    {
+      "name": "shift_remaining_capacity",
+      "description": "Number of additional workers that can be assigned to a shift (max_workers minus assigned_worker_count).",
+      "depends_on": [
+        "Shift.max_workers",
+        "shift_worker_count"
+      ],
+      "shown_on_pages": [
+        "Weekly Schedule"
+      ]
+    }
+  ],
+  "user_flows": [
+    {
+      "name": "Manager assigns employee to shift",
+      "steps": [
+        "Manager navigates to Weekly Schedule page",
+        "Manager selects a shift cell (day + time slot)",
+        "Manager selects an employee from available employee list",
+        "System validates employee weekly hour limit would not be exceeded",
+        "System validates shift max worker capacity is not reached",
+        "System checks employee availability if configured",
+        "If valid, assignment is created and schedule updates in real time",
+        "If invalid, system blocks action and/or displays warning message",
+        "Employee hours summary and shift capacity indicators update immediately"
+      ],
+      "pages_involved": [
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "Manager removes employee from shift",
+      "steps": [
+        "Manager navigates to Weekly Schedule page",
+        "Manager clicks on an assigned employee in a shift cell",
+        "Manager selects remove/unassign action",
+        "System deletes the schedule assignment",
+        "Employee weekly hours are automatically decremented",
+        "Shift worker count and capacity indicators update immediately"
+      ],
+      "pages_involved": [
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "Manager creates a new employee",
+      "steps": [
+        "Manager navigates to Employee Management page",
+        "Manager clicks add employee",
+        "Manager enters employee name and selects employment type",
+        "System creates the employee record",
+        "Employee appears in the employee list with max hours from their type"
+      ],
+      "pages_involved": [
+        "Employee Management"
+      ]
+    },
+    {
+      "name": "Manager configures employee types and shifts",
+      "steps": [
+        "Manager navigates to Settings page",
+        "Manager creates or edits employee types with max weekly hours",
+        "Manager creates or edits predefined shifts with day, times, and capacity",
+        "System auto-calculates shift durations",
+        "Settings are saved and reflected across the application"
+      ],
+      "pages_involved": [
+        "Settings"
+      ]
+    },
+    {
+      "name": "Employee views schedule and personal hours",
+      "steps": [
+        "Employee logs in and is directed to Dashboard",
+        "Employee sees personal hour summary (max, scheduled, remaining)",
+        "Employee navigates to Weekly Schedule to view the full week grid",
+        "Employee sees all shift assignments and their own shifts highlighted",
+        "Employee can select available shifts for themselves"
+      ],
+      "pages_involved": [
+        "Dashboard",
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "Employee selects an available shift",
+      "steps": [
+        "Employee navigates to Weekly Schedule page",
+        "Employee identifies available shifts (green indicators)",
+        "Employee clicks on an available shift to self-assign",
+        "System validates hour limit and shift capacity",
+        "If valid, employee is assigned and schedule updates",
+        "If invalid, system blocks action or shows warning"
+      ],
+      "pages_involved": [
+        "Weekly Schedule"
+      ]
+    },
+    {
+      "name": "Set employee availability",
+      "steps": [
+        "Manager navigates to Employee Management page",
+        "Manager selects an employee",
+        "Manager configures available days and shifts for the employee",
+        "Unavailable shifts are disabled/greyed out on the Weekly Schedule for that employee"
+      ],
+      "pages_involved": [
+        "Employee Management",
+        "Weekly Schedule"
+      ]
+    }
+  ],
+  "business_rules": [
+    {
+      "rule": "If assigning a shift would cause an employee's total weekly scheduled hours to exceed their employment type's max weekly hours, the assignment must be blocked or a warning displayed.",
+      "applies_to": [
+        "assign_employee_to_shift",
+        "select_available_shift",
+        "ScheduleAssignment",
+        "Employee"
+      ]
+    },
+    {
+      "rule": "If a shift has reached its max_workers capacity, no additional employees may be assigned to that shift.",
+      "applies_to": [
+        "assign_employee_to_shift",
+        "select_available_shift",
+        "ScheduleAssignment",
+        "Shift"
+      ]
+    },
+    {
+      "rule": "Shift duration is always automatically calculated as end_time minus start_time; it is never manually entered.",
+      "applies_to": [
+        "Shift",
+        "define_shift"
+      ]
+    },
+    {
+      "rule": "When an employee is removed from a shift, their weekly scheduled hours must be automatically decremented by the shift's duration.",
+      "applies_to": [
+        "remove_employee_from_shift",
+        "ScheduleAssignment",
+        "Employee"
+      ]
+    },
+    {
+      "rule": "When an employee is assigned to a shift, their weekly scheduled hours must be automatically incremented by the shift's duration.",
+      "applies_to": [
+        "assign_employee_to_shift",
+        "select_available_shift",
+        "ScheduleAssignment",
+        "Employee"
+      ]
+    },
+    {
+      "rule": "Each shift must have a defined minimum and maximum number of workers.",
+      "applies_to": [
+        "Shift",
+        "define_shift"
+      ]
+    },
+    {
+      "rule": "Shifts are predefined by managers and cannot be manually created by employees.",
+      "applies_to": [
+        "Shift",
+        "define_shift"
+      ]
+    },
+    {
+      "rule": "Permanent employees have a max of 40 weekly hours, Part-Time employees have a max of 20 weekly hours, and Federal Work Study employees have a max of 20 weekly hours (configurable by manager).",
+      "applies_to": [
+        "EmployeeType",
+        "configure_employee_type"
+      ]
+    },
+    {
+      "rule": "Employees can only view the schedule and select available shifts; they cannot modify employee rules, types, or shift definitions.",
+      "applies_to": [
+        "User",
+        "Employee"
+      ]
+    },
+    {
+      "rule": "Managers can create employees, set employee types, define hour limits, approve schedules, and edit shifts.",
+      "applies_to": [
+        "User"
+      ]
+    },
+    {
+      "rule": "If employee availability is configured, shifts the employee is not available for should be disabled/prevented from assignment.",
+      "applies_to": [
+        "EmployeeAvailability",
+        "assign_employee_to_shift",
+        "select_available_shift"
+      ]
+    },
+    {
+      "rule": "All hour summaries and shift capacity indicators must update in real time when assignments are added or removed.",
+      "applies_to": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_worker_count",
+        "shift_capacity_status"
+      ]
+    }
+  ],
+  "dependencies": {
+    "operation_to_entity": {
+      "create_employee": [
+        "Employee"
+      ],
+      "edit_employee": [
+        "Employee"
+      ],
+      "configure_employee_type": [
+        "EmployeeType"
+      ],
+      "define_shift": [
+        "Shift"
+      ],
+      "assign_employee_to_shift": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "remove_employee_from_shift": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "select_available_shift": [
+        "ScheduleAssignment",
+        "Employee",
+        "Shift"
+      ],
+      "set_employee_availability": [
+        "EmployeeAvailability"
+      ],
+      "view_schedule": [
+        "ScheduleAssignment",
+        "Shift",
+        "Employee"
+      ],
+      "view_personal_hours": [
+        "Employee",
+        "ScheduleAssignment"
+      ]
+    },
+    "entity_to_metric": {
+      "ScheduleAssignment": [
+        "employee_weekly_hours",
+        "shift_worker_count",
+        "shift_capacity_status",
+        "shift_remaining_capacity"
+      ],
+      "Shift": [
+        "shift_duration",
+        "shift_capacity_status",
+        "shift_remaining_capacity"
+      ],
+      "EmployeeType": [
+        "employee_remaining_hours",
+        "employee_hours_status"
+      ],
+      "Employee": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "employee_hours_status"
+      ]
+    },
+    "metric_to_page": {
+      "shift_duration": [
+        "Weekly Schedule",
+        "Settings"
+      ],
+      "employee_weekly_hours": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ],
+      "employee_remaining_hours": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ],
+      "shift_worker_count": [
+        "Weekly Schedule"
+      ],
+      "shift_capacity_status": [
+        "Weekly Schedule"
+      ],
+      "employee_hours_status": [
+        "Dashboard",
+        "Weekly Schedule",
+        "Employee Management"
+      ],
+      "shift_remaining_capacity": [
+        "Weekly Schedule"
+      ]
+    },
+    "operation_chain": {
+      "assign_employee_to_shift": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_worker_count",
+        "shift_capacity_status",
+        "employee_hours_status",
+        "shift_remaining_capacity"
+      ],
+      "remove_employee_from_shift": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_worker_count",
+        "shift_capacity_status",
+        "employee_hours_status",
+        "shift_remaining_capacity"
+      ],
+      "select_available_shift": [
+        "employee_weekly_hours",
+        "employee_remaining_hours",
+        "shift_worker_count",
+        "shift_capacity_status",
+        "employee_hours_status",
+        "shift_remaining_capacity"
+      ],
+      "configure_employee_type": [
+        "employee_remaining_hours",
+        "employee_hours_status"
+      ],
+      "define_shift": [
+        "shift_duration",
+        "shift_capacity_status",
+        "shift_remaining_capacity"
+      ],
+      "edit_employee": [
+        "employee_remaining_hours",
+        "employee_hours_status"
+      ]
+    }
+  }
+}

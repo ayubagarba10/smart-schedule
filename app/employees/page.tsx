@@ -15,6 +15,7 @@ import { Progress } from '@/components/ui/progress';
 import { EmployeeForm } from '@/components/employees/EmployeeForm';
 import { toast } from 'sonner';
 import { getHoursColor } from '@/lib/utils/schedule';
+import { getEmployeeColor } from '@/lib/utils/colors';
 import type { EmployeeWithHours, EmployeeType, Employee } from '@/types';
 
 export default function EmployeesPage() {
@@ -107,7 +108,15 @@ export default function EmployeesPage() {
                 const typeName = (emp as any).employee_types?.name ?? '—';
                 return (
                   <TableRow key={emp.id}>
-                    <TableCell className="font-medium">{emp.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: getEmployeeColor(emp.id) }}
+                        />
+                        {emp.name}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="outline">{typeName}</Badge>
                     </TableCell>

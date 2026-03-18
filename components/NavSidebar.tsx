@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useRole } from '@/lib/context/RoleContext';
 
 const navItems = [
   { href: '/',           label: 'Dashboard',   icon: '◻' },
@@ -12,6 +13,16 @@ const navItems = [
 
 export function NavSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { role, userEmail, userId, signOut, loading } = useRole();
+
+  // Don't show sidebar on login page
+  if (pathname === '/login') return null;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/login');
+  };
 
   return (
     <aside className="w-52 bg-white border-r border-gray-200 flex flex-col shrink-0">
@@ -49,9 +60,30 @@ export function NavSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        <p className="text-[10px] text-gray-400">Recreation Center</p>
+      {/* Footer: user info + logout */}
+      <div className="px-4 py-3 border-t border-gray-100 space-y-2">
+        {!loading && userId && (
+          <>
+            <div>
+              <p className="text-[10px] text-gray-400 truncate" title={userEmail ?? ''}>
+                {userEmail}
+              </p>
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                role === 'manager'
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {role === 'manager' ? 'Manager' : 'Employee'}
+              </span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="text-[11px] text-gray-400 hover:text-red-500 transition-colors w-full text-left"
+            >
+              Sign out
+            </button>
+          </>
+        )}
         <p className="text-[10px] text-gray-400">Week of {getWeekLabel()}</p>
       </div>
     </aside>

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { ShiftCell } from './ShiftCell';
 import { EmployeeHoursPanel } from './EmployeeHoursPanel';
 import { DAY_LABELS, formatTime, calcDurationHours } from '@/lib/utils/schedule';
+import { useRole } from '@/lib/context/RoleContext';
 import type { EmployeeWithHours, Shift, ScheduleAssignment } from '@/types';
 
 interface WeeklyGridProps {
@@ -12,7 +13,7 @@ interface WeeklyGridProps {
   initialEmployees: EmployeeWithHours[];
 }
 
-// Group shifts by day_of_week, then by shift name (Morning/Afternoon/Evening)
+// Group shifts by day_of_week
 function groupShifts(shifts: Shift[]) {
   const byDay: Record<number, Shift[]> = {};
   for (let d = 0; d <= 6; d++) byDay[d] = [];
@@ -40,22 +41,23 @@ export function WeeklyGrid({
   initialAssignments,
   initialEmployees,
 }: WeeklyGridProps) {
+  const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [assignments, setAssignments] = useState<ScheduleAssignment[]>(initialAssignments);
   const [employees, setEmployees] = useState<EmployeeWithHours[]>(initialEmployees);
 
-  const shiftsByDay = groupShifts(initialShifts);
-  const shiftNames = getShiftNames(initialShifts);
+  const { role, employeeId } = useRole();
 
-  // Recompute employee hours after a change
+  const shiftsByDay = groupShifts(shifts);
+  const shiftNames = getShiftNames(shifts);
+  const shiftsMap = new Map(shifts.map((s) => [s.id, s]));
+
   const recomputeEmployeeHours = useCallback(
-    (updatedAssignments: ScheduleAssignment[], shiftsMap: Map<string, Shift>) => {
+    (updatedAssignments: ScheduleAssignment[], map: Map<string, Shift>) => {
       setEmployees((prev) =>
         prev.map((emp) => {
-          const empAssignments = updatedAssignments.filter(
-            (a) => a.employee_id === emp.id
-          );
+          const empAssignments = updatedAssignments.filter((a) => a.employee_id === emp.id);
           const scheduledHours = empAssignments.reduce((total, a) => {
-            const shift = shiftsMap.get(a.shift_id);
+            const shift = map.get(a.shift_id);
             if (!shift) return total;
             return total + calcDurationHours(shift.start_time, shift.end_time);
           }, 0);
@@ -71,8 +73,6 @@ export function WeeklyGrid({
     },
     []
   );
-
-  const shiftsMap = new Map(initialShifts.map((s) => [s.id, s]));
 
   const handleAssigned = useCallback(
     (assignment: ScheduleAssignment) => {
@@ -92,6 +92,14 @@ export function WeeklyGrid({
     [assignments, shiftsMap, recomputeEmployeeHours]
   );
 
+  const handleShiftUpdated = useCallback((updatedShift: Shift) => {
+    setShifts((prev) => prev.map((s) => (s.id === updatedShift.id ? updatedShift : s)));
+    // Recompute hours in case duration changed
+    recomputeEmployeeHours(assignments, new Map(
+      shifts.map((s) => [s.id, s.id === updatedShift.id ? updatedShift : s])
+    ));
+  }, [assignments, shifts, recomputeEmployeeHours]);
+
   if (initialShifts.length === 0) {
     return (
       <div className="text-center text-gray-500 py-16">
@@ -103,93 +111,87 @@ export function WeeklyGrid({
   return (
     <div className="flex gap-4 items-start">
       <div className="overflow-x-auto flex-1">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            {/* Shift name column header */}
-            <th className="sticky left-0 bg-gray-50 border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px] z-10">
-              Shift
-            </th>
-            {/* Day headers */}
-            {DAY_LABELS.map((day, idx) => (
-              <th
-                key={day}
-                className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-700 min-w-[130px]"
-              >
-                <div>{day}</div>
-                {/* Show if today */}
-                {isToday(idx) && (
-                  <div className="text-[10px] font-normal text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5 mt-0.5 inline-block">
-                    Today
-                  </div>
-                )}
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="sticky left-0 bg-gray-50 border border-gray-200 px-3 py-2 text-left font-semibold text-gray-700 min-w-[100px] z-10">
+                Shift
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {shiftNames.map((shiftName) => (
-            <tr key={shiftName} className="hover:bg-gray-50/50">
-              {/* Row label: shift name + representative time */}
-              <td className="sticky left-0 bg-white border border-gray-200 px-3 py-2 font-medium text-gray-800 z-10">
-                <div className="font-semibold">{shiftName}</div>
-                {/* Show time from Monday's shift of this name */}
-                {(() => {
-                  const refShift = shiftsByDay[0]?.find((s) => s.name === shiftName)
-                    ?? shiftsByDay[5]?.find((s) => s.name === shiftName);
-                  if (!refShift) return null;
-                  return (
-                    <div className="text-[10px] text-gray-400 font-normal">
-                      {formatTime(refShift.start_time)}–{formatTime(refShift.end_time)}
+              {DAY_LABELS.map((day, idx) => (
+                <th
+                  key={day}
+                  className="border border-gray-200 px-2 py-2 text-center font-semibold text-gray-700 min-w-[130px]"
+                >
+                  <div>{day}</div>
+                  {isToday(idx) && (
+                    <div className="text-[10px] font-normal text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5 mt-0.5 inline-block">
+                      Today
                     </div>
-                  );
-                })()}
-              </td>
-
-              {/* Cells for each day */}
-              {Array.from({ length: 7 }, (_, dayIdx) => {
-                const shift = shiftsByDay[dayIdx]?.find((s) => s.name === shiftName);
-                const cellAssignments = shift
-                  ? assignments.filter((a) => a.shift_id === shift.id)
-                  : [];
-
-                return (
-                  <td
-                    key={dayIdx}
-                    className="border border-gray-200 align-top p-0"
-                  >
-                    {shift ? (
-                      <ShiftCell
-                        shift={{
-                          ...shift,
-                          duration_hours: calcDurationHours(shift.start_time, shift.end_time),
-                        }}
-                        assignments={cellAssignments}
-                        employees={employees}
-                        onAssigned={handleAssigned}
-                        onRemoved={handleRemoved}
-                      />
-                    ) : (
-                      <div className="h-[80px] bg-gray-50/80 flex items-center justify-center">
-                        <span className="text-xs text-gray-300">—</span>
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+                  )}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {shiftNames.map((shiftName) => (
+              <tr key={shiftName} className="hover:bg-gray-50/50">
+                <td className="sticky left-0 bg-white border border-gray-200 px-3 py-2 font-medium text-gray-800 z-10">
+                  <div className="font-semibold">{shiftName}</div>
+                  {(() => {
+                    const refShift =
+                      shiftsByDay[0]?.find((s) => s.name === shiftName) ??
+                      shiftsByDay[5]?.find((s) => s.name === shiftName);
+                    if (!refShift) return null;
+                    return (
+                      <div className="text-[10px] text-gray-400 font-normal">
+                        {formatTime(refShift.start_time)}–{formatTime(refShift.end_time)}
+                      </div>
+                    );
+                  })()}
+                </td>
+
+                {Array.from({ length: 7 }, (_, dayIdx) => {
+                  const shift = shiftsByDay[dayIdx]?.find((s) => s.name === shiftName);
+                  const cellAssignments = shift
+                    ? assignments.filter((a) => a.shift_id === shift.id)
+                    : [];
+
+                  return (
+                    <td key={dayIdx} className="border border-gray-200 align-top p-0">
+                      {shift ? (
+                        <ShiftCell
+                          shift={{
+                            ...shift,
+                            duration_hours: calcDurationHours(shift.start_time, shift.end_time),
+                          }}
+                          assignments={cellAssignments}
+                          employees={employees}
+                          onAssigned={handleAssigned}
+                          onRemoved={handleRemoved}
+                          onShiftUpdated={handleShiftUpdated}
+                          userRole={role}
+                          currentEmployeeId={employeeId}
+                        />
+                      ) : (
+                        <div className="h-[80px] bg-gray-50/80 flex items-center justify-center">
+                          <span className="text-xs text-gray-300">—</span>
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       <EmployeeHoursPanel employees={employees} />
     </div>
   );
 }
 
-// Check if a day index (0=Monday) corresponds to today
 function isToday(dayIdx: number): boolean {
-  const today = new Date().getDay(); // 0=Sunday
-  const todayAdjusted = today === 0 ? 6 : today - 1; // Convert to 0=Monday
+  const today = new Date().getDay();
+  const todayAdjusted = today === 0 ? 6 : today - 1;
   return dayIdx === todayAdjusted;
 }

@@ -6,6 +6,7 @@ import { CellEditModal } from './CellEditModal';
 import { getCapacityColor } from '@/lib/utils/schedule';
 import { getEmployeeColor, getTextColor } from '@/lib/utils/colors';
 import type { EmployeeWithHours, Shift, ScheduleAssignment } from '@/types';
+import type { UserRole } from '@/lib/context/RoleContext';
 
 interface ShiftCellProps {
   shift: Shift;
@@ -13,6 +14,9 @@ interface ShiftCellProps {
   employees: EmployeeWithHours[];
   onAssigned: (assignment: ScheduleAssignment) => void;
   onRemoved: (assignmentId: string) => void;
+  onShiftUpdated: (shift: Shift) => void;
+  userRole: UserRole;
+  currentEmployeeId: string | null;
 }
 
 export function ShiftCell({
@@ -21,6 +25,9 @@ export function ShiftCell({
   employees,
   onAssigned,
   onRemoved,
+  onShiftUpdated,
+  userRole,
+  currentEmployeeId,
 }: ShiftCellProps) {
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -69,12 +76,11 @@ export function ShiftCell({
         shift={shift}
         assignments={assignments}
         employees={employees}
-        onAssigned={(assignment) => {
-          onAssigned(assignment);
-        }}
-        onRemoved={(assignmentId) => {
-          onRemoved(assignmentId);
-        }}
+        onAssigned={onAssigned}
+        onRemoved={onRemoved}
+        onShiftUpdated={onShiftUpdated}
+        userRole={userRole}
+        currentEmployeeId={currentEmployeeId}
       />
     </>
   );

@@ -215,7 +215,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl space-y-10">
+    <div className="p-4 sm:p-6 max-w-4xl space-y-10">
       <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
 
       {/* ── Employment Types ── */}
@@ -225,7 +225,49 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500">Configure the weekly hour limits for each employment category.</p>
         </div>
 
-        <div className="bg-white border rounded-xl overflow-hidden">
+        {/* Mobile card list */}
+        <div className="sm:hidden space-y-3">
+          {types.length === 0 ? (
+            <p className="text-center text-gray-400 py-8 bg-white border rounded-xl text-sm">
+              No employment types configured yet. Add one below.
+            </p>
+          ) : (
+            types.map((t) => (
+              <div key={t.id} className={`bg-white border rounded-xl p-4 space-y-3 ${!t.is_active ? 'opacity-60' : ''}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">{t.name}</p>
+                    <p className="text-sm text-gray-500">{t.max_weekly_hours}h / week</p>
+                  </div>
+                  <Badge variant={t.is_active ? 'default' : 'outline'}>
+                    {t.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-10"
+                    onClick={() => handleToggleType(t)}
+                  >
+                    {t.is_active ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 h-10 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => handleDeleteType(t.id, t.name)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden sm:block bg-white border rounded-xl overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
@@ -279,7 +321,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Add type form */}
-        <form onSubmit={handleAddType} className="flex items-end gap-3 bg-white border rounded-xl p-4">
+        <form onSubmit={handleAddType} className="flex flex-col gap-3 sm:flex-row sm:items-end bg-white border rounded-xl p-4">
           <div className="flex-1 space-y-1">
             <Label htmlFor="type-name">Type Name</Label>
             <Input
@@ -289,7 +331,7 @@ export default function SettingsPage() {
               placeholder="e.g. Part-Time"
             />
           </div>
-          <div className="w-40 space-y-1">
+          <div className="sm:w-40 space-y-1">
             <Label htmlFor="type-hours">Max Hours / Week</Label>
             <Input
               id="type-hours"
@@ -301,7 +343,7 @@ export default function SettingsPage() {
               placeholder="20"
             />
           </div>
-          <Button type="submit">Add Type</Button>
+          <Button type="submit" className="h-10 sm:h-9">Add Type</Button>
         </form>
       </section>
 
@@ -314,7 +356,123 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500">Define the predefined shift time blocks for each day of the week.</p>
         </div>
 
-        <div className="bg-white border rounded-xl overflow-hidden">
+        {/* Mobile card list */}
+        <div className="sm:hidden space-y-3">
+          {shifts.length === 0 ? (
+            <p className="text-center text-gray-400 py-8 bg-white border rounded-xl text-sm">
+              No shifts configured yet. Add shifts using the form below.
+            </p>
+          ) : (
+            shifts.map((s) => {
+              const isEditing = editingShiftId === s.id;
+              return (
+                <div key={s.id} className={`bg-white border rounded-xl p-4 space-y-3 ${isEditing ? 'border-indigo-300' : ''}`}>
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Day</label>
+                          <select
+                            className="w-full border rounded-md px-2 py-2 text-sm"
+                            value={editDraft.day_of_week}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, day_of_week: Number(e.target.value) }))}
+                          >
+                            {DAY_LABELS.map((label, idx) => (
+                              <option key={idx} value={idx}>{label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Shift Name</label>
+                          <Input
+                            value={editDraft.name ?? ''}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, name: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Start Time</label>
+                          <input
+                            type="time"
+                            className="w-full border rounded-md px-2 py-2 text-sm"
+                            value={editDraft.start_time ?? ''}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, start_time: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">End Time</label>
+                          <input
+                            type="time"
+                            className="w-full border rounded-md px-2 py-2 text-sm"
+                            value={editDraft.end_time ?? ''}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, end_time: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Min Workers</label>
+                          <input
+                            type="number"
+                            min={0}
+                            className="w-full border rounded-md px-2 py-2 text-sm"
+                            value={editDraft.min_workers ?? ''}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, min_workers: Number(e.target.value) }))}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-gray-500">Max Workers</label>
+                          <input
+                            type="number"
+                            min={1}
+                            className="w-full border rounded-md px-2 py-2 text-sm"
+                            value={editDraft.max_workers ?? ''}
+                            onChange={(e) => setEditDraft((d) => ({ ...d, max_workers: Number(e.target.value) }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button className="flex-1 h-11" onClick={handleSaveShift}>Save</Button>
+                        <Button className="flex-1 h-11" variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-gray-900">{s.name}</p>
+                          <p className="text-sm text-gray-500">{DAY_LABELS[s.day_of_week]}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-mono text-gray-700">{formatTime(s.start_time)}–{formatTime(s.end_time)}</p>
+                          <p className="text-xs text-gray-500">{calcDurationHours(s.start_time, s.end_time)}h · {s.min_workers}–{s.max_workers} workers</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-10"
+                          onClick={() => handleEditShift(s)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-10 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => handleDeleteShift(s.id, `${DAY_LABELS[s.day_of_week]} ${s.name}`)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden sm:block bg-white border rounded-xl overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>

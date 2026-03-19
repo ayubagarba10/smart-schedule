@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { ShiftCell } from './ShiftCell';
 import { EmployeeHoursPanel } from './EmployeeHoursPanel';
+import { MobileDayView } from './MobileDayView';
 import { DAY_LABELS, formatTime, calcDurationHours } from '@/lib/utils/schedule';
 import { useRole } from '@/lib/context/RoleContext';
 import type { EmployeeWithHours, Shift, ScheduleAssignment } from '@/types';
@@ -44,6 +45,10 @@ export function WeeklyGrid({
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [assignments, setAssignments] = useState<ScheduleAssignment[]>(initialAssignments);
   const [employees, setEmployees] = useState<EmployeeWithHours[]>(initialEmployees);
+  const [selectedDay, setSelectedDay] = useState<number>(() => {
+    const today = new Date().getDay();
+    return today === 0 ? 6 : today - 1;
+  });
 
   const { role, employeeId } = useRole();
 
@@ -110,7 +115,24 @@ export function WeeklyGrid({
 
   return (
     <div className="flex gap-4 items-start">
-      <div className="overflow-x-auto flex-1">
+      {/* Mobile single-day view */}
+      <div className="sm:hidden flex-1 min-w-0">
+        <MobileDayView
+          selectedDay={selectedDay}
+          onSelectDay={setSelectedDay}
+          shifts={shifts}
+          assignments={assignments}
+          employees={employees}
+          onAssigned={handleAssigned}
+          onRemoved={handleRemoved}
+          onShiftUpdated={handleShiftUpdated}
+          userRole={role}
+          currentEmployeeId={employeeId}
+        />
+      </div>
+
+      {/* Desktop table view */}
+      <div className="hidden sm:block overflow-x-auto flex-1">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
@@ -185,7 +207,10 @@ export function WeeklyGrid({
           </tbody>
         </table>
       </div>
-      <EmployeeHoursPanel employees={employees} />
+
+      <div className="hidden sm:block">
+        <EmployeeHoursPanel employees={employees} />
+      </div>
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default function RootLayout({
         <RoleProvider>
           <div className="flex min-h-screen">
             <NavSidebar />
-            <main className="flex-1 overflow-auto">{children}</main>
+            <main className="flex-1 overflow-auto pb-16 sm:pb-0">{children}</main>
           </div>
           <Toaster richColors position="top-right" />
         </RoleProvider>

@@ -66,9 +66,9 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500">
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
         </div>
         <Link
           href="/schedule"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors self-start sm:self-auto"
         >
           View Schedule →
         </Link>
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className="bg-white border rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-gray-900">{employees.length}</p>
           <p className="text-sm text-gray-500">Employees</p>
